@@ -39,16 +39,38 @@ function qualMatchNumber(match: TBAMatch): string | null {
 }
 
 /**
+ * Checks if an event already exists in Firestore by looking for any team documents.
+ * Returns true if the event has been previously loaded, false otherwise.
+ */
+async function eventAlreadyExists(eventKey: string): Promise<boolean> {
+  const col = collection(db, "competitions", eventKey, "teams");
+  const snap = await getDocs(col);
+  return !snap.empty;
+}
+
+/**
  * Writes all teams and qualification matches for a competition to Firestore
  * in batches.
  * Teams:   competitions/{eventKey}/teams/{teamNumber}
  * Matches: competitions/{eventKey}/matches/{matchNumber}  (quals only)
+ *
+ * If the event already exists, skips writing to preserve any existing pit scouting
+ * or match data that may have been collected since the event was first loaded.
  */
 export async function saveCompetitionToFirestore(
   eventKey: string,
   teams: TBATeam[],
   matches: TBAMatch[]
 ): Promise<void> {
+  // Check if this event has already been loaded/saved to Firestore
+  const alreadyExists = await eventAlreadyExists(eventKey);
+  if (alreadyExists) {
+    console.log(
+      `[Firestore] Event "${eventKey}" already exists. Skipping save to preserve existing pit scouting and match data.`
+    );
+    return;
+  }
+
   // Only qualification matches are stored
   const qualMatches = matches.filter((m) => m.comp_level === "qm");
 
@@ -100,32 +122,11 @@ export async function saveCompetitionToFirestore(
   }
 
   // ── Matches (quals only) ───────────────────────────────────────────────────
-  for (const match of qualMatches) {
-    const id = qualMatchNumber(match)!;
-    const ref = doc(db, "competitions", eventKey, "matches", id);
-
-    const redTeams = match.alliances.red.team_keys.map((k) =>
-      k.replace("frc", "")
-    );
-    const blueTeams = match.alliances.blue.team_keys.map((k) =>
-      k.replace("frc", "")
-    );
-
-    batch.set(ref, {
-      red: {
-        teams: redTeams,
-        autoScores: [],
-        teleopScores: [],
-      },
-      blue: {
-        teams: blueTeams,
-        autoScores: [],
-        teleopScores: [],
-      },
-    });
-    opCount++;
-    if (opCount >= BATCH_LIMIT) await flush();
-  }
+  // Note: Match schedule is kept in CompetitionContext for the UI, but match
+  // documents are NOT written to Firestore. All match data (teams, scores) will
+  // come from scouting records, not from The Blue Alliance.
+  // Skeleton match documents with empty score arrays would be created on-the-fly
+  // when the first scouting record is saved for a match (see saveScoutingRecord).
 
   // Commit any remaining writes
   await flush();

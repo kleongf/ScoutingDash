@@ -108,14 +108,12 @@ export function computeOPR(
     matchesPlayed: 0,
   });
 
-  // Use qualification matches that either have TBA scores recorded (score >= 0)
-  // OR have scouted score data — this allows test competitions where TBA scores
-  // are never set (score === -1) to still contribute to OPR.
+  // Use qualification matches that have scouted score data from the database.
+  // TBA scores are ignored — OPR is computed only from scouting records.
   const playedQuals = matches.filter((m) => {
     if (m.comp_level !== "qm") return false;
-    const hasScores = m.alliances.red.score >= 0 && m.alliances.blue.score >= 0;
     const hasScouted = scoutedScores?.has(m.match_number) ?? false;
-    return hasScores || hasScouted;
+    return hasScouted;
   });
 
   // Practice matches (negative match numbers) live only in scoutedScores —
@@ -191,20 +189,19 @@ export function computeOPR(
 
       rows.push(row);
 
-      // Use scouted scores when available, fall back to TBA alliance total.
-      // For test competitions the TBA score is -1, so clamp the fallback to 0.
+      // Use scouted scores only — no fallback to TBA data.
+      // Since we filtered playedQuals to only include matches with scouted data,
+      // we should always have scouted arrays here.
       const scouted = scoutedScores?.get(match.match_number);
       const scoutedAutoArr = scouted ? (side === "red" ? scouted.redAutoScores : scouted.blueAutoScores) : [];
       const scoutedTeleopArr = scouted ? (side === "red" ? scouted.redTeleopScores : scouted.blueTeleopScores) : [];
 
-      const tbaScore = Math.max(0, alliance.score); // clamp -1 → 0 for test matches
-
       const avgAuto = scoutedAutoArr.length > 0
         ? scoutedAutoArr.reduce((a, b) => a + b, 0) / scoutedAutoArr.length
-        : tbaScore;
+        : 0; // If no scouted data, use 0 (should not happen due to filter above)
       const avgTeleop = scoutedTeleopArr.length > 0
         ? scoutedTeleopArr.reduce((a, b) => a + b, 0) / scoutedTeleopArr.length
-        : tbaScore;
+        : 0; // If no scouted data, use 0 (should not happen due to filter above)
 
       autoScores.push(avgAuto);
       teleopScores.push(avgTeleop);

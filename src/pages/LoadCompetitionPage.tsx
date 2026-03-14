@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchEvent, fetchEventMatches, fetchEventTeams } from "../services/tba";
+import { fetchEvent, fetchEventTeams, fetchEventMatches } from "../services/tba";
 import { saveCompetitionToFirestore } from "../services/firestore";
 import { useCompetition } from "../context/CompetitionContext";
 import { generateTestCompetition } from "../utils/generateTestCompetition";

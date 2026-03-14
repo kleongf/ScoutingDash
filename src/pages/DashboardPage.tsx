@@ -377,9 +377,6 @@ export default function DashboardPage() {
                   {sortedMatches.map((match) => {
                     const red = match.alliances.red;
                     const blue = match.alliances.blue;
-                    const redWon = red.score > blue.score;
-                    const blueWon = blue.score > red.score;
-                    const hasScores = red.score >= 0 && blue.score >= 0;
 
                     return (
                       <div
@@ -391,7 +388,7 @@ export default function DashboardPage() {
                         </span>
 
                         {/* Red alliance */}
-                        <div className={`flex-1 rounded-lg px-2 py-1.5 ${redWon ? "bg-red-900/70" : "bg-red-950/40"}`}>
+                        <div className="flex-1 rounded-lg px-2 py-1.5 bg-red-950/40">
                           <div className="flex flex-wrap gap-1 mb-1">
                             {red.team_keys.map((t) => (
                               <span key={t} className="text-xs font-medium text-red-300">
@@ -399,17 +396,12 @@ export default function DashboardPage() {
                               </span>
                             ))}
                           </div>
-                          {hasScores && (
-                            <span className={`text-sm font-bold ${redWon ? "text-red-200" : "text-red-400"}`}>
-                              {red.score}
-                            </span>
-                          )}
                         </div>
 
                         <span className="text-gray-600 text-xs font-bold">vs</span>
 
                         {/* Blue alliance */}
-                        <div className={`flex-1 rounded-lg px-2 py-1.5 ${blueWon ? "bg-blue-900/70" : "bg-blue-950/40"}`}>
+                        <div className="flex-1 rounded-lg px-2 py-1.5 bg-blue-950/40">
                           <div className="flex flex-wrap gap-1 mb-1">
                             {blue.team_keys.map((t) => (
                               <span key={t} className="text-xs font-medium text-blue-300">
@@ -417,11 +409,6 @@ export default function DashboardPage() {
                               </span>
                             ))}
                           </div>
-                          {hasScores && (
-                            <span className={`text-sm font-bold ${blueWon ? "text-blue-200" : "text-blue-400"}`}>
-                              {blue.score}
-                            </span>
-                          )}
                         </div>
                       </div>
                     );

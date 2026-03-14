@@ -116,7 +116,7 @@ export default function PitScoutingTab({ eventKey, teamNumber }: PitScoutingTabP
   }
 
   const d = data ?? EMPTY_PIT_DATA;
-  const fmt = (v: number | null, unit: string) =>
+  const fmt = (v: number | string | null, unit: string) =>
     v != null ? `${v} ${unit}` : "—";
 
   return (
