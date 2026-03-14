@@ -13,7 +13,7 @@ function App() {
           <Route path="/" element={<LoadCompetitionPage />} />
           <Route path="/dashboard/:eventKey" element={<DashboardPage />} />
           <Route path="/dashboard/:eventKey/team/:teamNumber" element={<TeamPage />} />
-          <Route path="/scanner" element={<QRScannerPage />} />
+          <Route path="/dashboard/:eventKey/scanner" element={<QRScannerPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

@@ -166,7 +166,11 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => window.open("/scanner", "_blank", "noopener,noreferrer")}
+            onClick={() => {
+              if (!eventKey) return;
+              const url = `/dashboard/${encodeURIComponent(eventKey)}/scanner`;
+              window.open(url, "_blank", "noopener,noreferrer");
+            }}
             title="Open QR scanner in a new tab"
             aria-label="Open QR code scanner"
             className="flex items-center gap-1.5 text-xs font-semibold text-gray-200 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition cursor-pointer"
