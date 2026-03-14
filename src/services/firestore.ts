@@ -159,9 +159,20 @@ export interface PitScoutingData {
   weightLbs: number | null;
   heightIn: number | null;
   widthIn: number | null;
-  fuelCapacity: number | null;
+  fuelCapacity: string; // some exports store this as a string
   shootingArea: string;
   notes: string;
+  // Additional optional fields (some pit docs use different keys / shapes)
+  ballsPerSecond?: string;
+  eventCode?: string;
+  hoardingNeutralPct?: string;
+  hoardingOppositePct?: string;
+  matches?: string[];
+  shootOnMoveAccuracy?: string;
+  teamName?: string;
+  teamNumber?: string | number;
+  updatedAt?: string | null;
+  vision?: string;
 }
 
 export const EMPTY_PIT_DATA: PitScoutingData = {
@@ -173,9 +184,19 @@ export const EMPTY_PIT_DATA: PitScoutingData = {
   weightLbs: null,
   heightIn: null,
   widthIn: null,
-  fuelCapacity: null,
+  fuelCapacity: "",
   shootingArea: "",
   notes: "",
+  ballsPerSecond: "",
+  eventCode: undefined,
+  hoardingNeutralPct: "",
+  hoardingOppositePct: "",
+  matches: [],
+  shootOnMoveAccuracy: "",
+  teamName: undefined,
+  teamNumber: undefined,
+  updatedAt: null,
+  vision: "",
 };
 
 /**
@@ -192,26 +213,78 @@ export async function loadPitScouting(
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
   const d = snap.data() as Record<string, unknown>;
-  // If none of the pit-specific fields are present, treat as no data
-  if (
-    d.drivetrain === undefined &&
-    d.weightLbs === undefined &&
-    d.canScaleRamp === undefined
-  ) {
-    return null;
-  }
+  // Detect presence: accept several known pit fields (support old & new exports)
+  const hasPitFields =
+    d.drivetrain !== undefined ||
+    d.weightLbs !== undefined ||
+    d.canScaleRamp !== undefined ||
+    d.teamName !== undefined ||
+    d.eventCode !== undefined ||
+    d.climbs !== undefined ||
+    d.climbL1 !== undefined;
+  if (!hasPitFields) return null;
+
+  // Support two shapes for climb info: either climbL1/2/3 or climbs: { L1, L2, L3 }
+  const climbs = d.climbs as
+    | Record<string, { attempted?: boolean; timeSeconds?: string }>
+    | undefined;
+
+  const makeClimb = (raw: any): ClimbLevel => {
+    if (!raw) return { capable: false, timeSecs: null };
+    const attempted = raw.attempted ?? raw.capable ?? false;
+    const t = raw.timeSeconds ?? raw.timeSecs ?? raw.time ?? null;
+    const timeSecs = t !== null && t !== "" ? Number(t) : null;
+    return { capable: Boolean(attempted), timeSecs };
+  };
+
+  const climbL1 = makeClimb(climbs?.L1 ?? d.climbL1);
+  const climbL2 = makeClimb(climbs?.L2 ?? d.climbL2);
+  const climbL3 = makeClimb(climbs?.L3 ?? d.climbL3);
+
+  // Parse numeric-ish fields that may be stored as strings in some exports
+  const parseNumberOrNull = (v: unknown) => {
+    if (v == null) return null;
+    if (typeof v === "number") return v;
+    const s = String(v).trim();
+    if (s === "") return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const updatedAtRaw = d.updatedAt as any;
+  const updatedAt = updatedAtRaw
+    ? typeof updatedAtRaw.toDate === "function"
+      ? updatedAtRaw.toDate().toISOString()
+      : String(updatedAtRaw)
+    : null;
+
   return {
     canScaleRamp: Boolean(d.canScaleRamp ?? false),
-    climbL1: (d.climbL1 as ClimbLevel) ?? { capable: false, timeSecs: null },
-    climbL2: (d.climbL2 as ClimbLevel) ?? { capable: false, timeSecs: null },
-    climbL3: (d.climbL3 as ClimbLevel) ?? { capable: false, timeSecs: null },
+    climbL1,
+    climbL2,
+    climbL3,
     drivetrain: String(d.drivetrain ?? ""),
-    weightLbs: d.weightLbs != null ? Number(d.weightLbs) : null,
-    heightIn: d.heightIn != null ? Number(d.heightIn) : null,
-    widthIn: d.widthIn != null ? Number(d.widthIn) : null,
-    fuelCapacity: d.fuelCapacity != null ? Number(d.fuelCapacity) : null,
-    shootingArea: String(d.shootingArea ?? ""),
+    weightLbs: parseNumberOrNull(d.weight ?? d.weightLbs),
+    heightIn: parseNumberOrNull(d.height ?? d.heightIn),
+    widthIn: parseNumberOrNull(d.width ?? d.widthIn),
+    fuelCapacity: String(d.fuelCapacity ?? ""),
+    ballsPerSecond: String(d.ballsPerSecond ?? ""),
+    eventCode: d.eventCode ? String(d.eventCode) : undefined,
+    hoardingNeutralPct: String(d.hoardingNeutralPct ?? ""),
+    hoardingOppositePct: String(d.hoardingOppositePct ?? ""),
+    matches: (d.matches as string[] | undefined) ?? [],
     notes: String(d.notes ?? ""),
+    shootOnMoveAccuracy: String(d.shootOnMoveAccuracy ?? ""),
+    shootingArea: String(d.shootingArea ?? ""),
+    teamName: d.teamName ? String(d.teamName) : undefined,
+    teamNumber:
+      d.teamNumber !== undefined
+        ? typeof d.teamNumber === "number"
+          ? (d.teamNumber as number)
+          : String(d.teamNumber)
+        : undefined,
+    updatedAt,
+    vision: String(d.vision ?? ""),
   };
 }
 
