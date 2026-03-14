@@ -109,7 +109,7 @@ function RecordPreview({ record, eventKey, onSave, onDiscard }: {
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Endgame</p>
           <Field label="Climb Attempted" value={<BoolBadge value={endgame.attempted} />} />
           <Field label="Climb Level" value={endgame.level > 0 ? `L${endgame.level}` : "None"} />
-          <Field label="Driver Rating" value={`${endgame.rating} / 10`} />
+          <Field label="Defense Rating" value={`${endgame.rating} / 10`} />
           <Field label="Fouls" value={endgame.fouls} />
           {endgame.notes && <Field label="Notes" value={<span className="italic text-gray-400">{endgame.notes}</span>} />}
         </div>

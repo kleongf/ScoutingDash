@@ -18,7 +18,7 @@ export interface TeamMetrics {
   climbSuccessRate: number;  // 0–1
   defenseRate: number;       // 0–1
   brickedRate: number;       // 0–1
-  avgDriverRating: number;   // 1–10
+  avgDriverRating: number;   // 1–10 (defense rating)
 }
 
 const EMPTY_METRICS: Omit<TeamMetrics, "teamNumber"> = {
@@ -75,17 +75,6 @@ export function generateTeamMetrics(
   return map;
 }
 
-/** Mulberry32 — a fast, seedable 32-bit PRNG (used for placeholder match data points). */
-function mulberry32(seed: number) {
-  return function () {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 export interface MatchDataPoint {
   matchNumber: number;
   ballsScored: number;
@@ -99,22 +88,16 @@ export interface MatchDataPoint {
  * Generates stable per-match data points for a team (placeholder until real
  * scouting data is available from Firestore).
  */
+/**
+ * Placeholder match data generator removed.
+ *
+ * Real per-match scouting data should be read from Firestore (competitions/{eventKey}/teams/{teamNumber}/matches)
+ * and mapped into MatchDataPoint. Until that's wired up, return an empty array so the UI shows
+ * zero / false defaults instead of synthetic values.
+ */
 export function generateMatchDataPoints(
-  teamNumber: number,
-  matchNumbers: number[]
+  _teamNumber: number,
+  _matchNumbers: number[]
 ): MatchDataPoint[] {
-  return matchNumbers.map((matchNumber) => {
-    // Seed incorporates both team and match so each cell is independently random
-    // but deterministic.
-    const rand = mulberry32((teamNumber * 2654435761 + matchNumber * 40503) >>> 0);
-    return {
-      matchNumber,
-      ballsScored: Math.round(rand() * 120) / 10,
-      ballsTransferred: Math.round(rand() * 150) / 10,
-      // ~65 % climb success, ~30 % defense, ~15 % brick
-      climbSuccess: rand() < 0.65,
-      playedDefense: rand() < 0.30,
-      bricked: rand() < 0.15,
-    };
-  });
+  return [];
 }

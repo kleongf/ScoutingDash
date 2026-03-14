@@ -20,7 +20,7 @@ export interface EndgameData {
   notes: string;
   attempted: boolean;
   level: number;   // 0 = none, 1 = L1, 2 = L2, 3 = L3
-  rating: number;  // 1–10 driver rating
+  rating: number;  // 1–10 defense rating
   fouls: number;
 }
 

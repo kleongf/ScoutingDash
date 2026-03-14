@@ -14,7 +14,7 @@ import {
   Cell,
 } from "recharts";
 import { useCompetition } from "../context/CompetitionContext";
-import { generateMatchDataPoints } from "../utils/teamMetrics";
+import { loadTeamMatchRecords } from "../services/firestore";
 import { computeOPR } from "../utils/opr";
 import { loadMatchScores, type MatchScores } from "../services/firestore";
 import PitScoutingTab from "../components/PitScoutingTab";
@@ -117,13 +117,36 @@ export default function TeamPage() {
     [matches, teamKey]
   );
 
-  const matchNumbers = qualMatches.map((m) => m.match_number);
+  
 
-  const dataPoints = useMemo(
-    () => generateMatchDataPoints(teamNum, matchNumbers),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [teamNum, matchNumbers.join(",")]
-  );
+  // Per-team match data (from saved scouting records). If none are available
+  // the array will be empty so charts and summary stats fall back to zeros.
+  const [dataPoints, setDataPoints] = useState<{
+    matchNumber: number;
+    ballsScored: number;
+    ballsTransferred: number;
+    climbSuccess: boolean;
+    playedDefense: boolean;
+    bricked: boolean;
+  }[]>([]);
+
+  useEffect(() => {
+    if (!eventKey) return;
+    // Load saved per-team match records and map to the chart-friendly shape
+    loadTeamMatchRecords(eventKey, teamNum)
+      .then((records) => {
+        const points = records.map((r) => ({
+          matchNumber: r.teamInfo.matchNumber,
+          ballsScored: r.teleop.ballsMade ?? 0,
+          ballsTransferred: r.teleop.ballsTransferred ?? 0,
+          climbSuccess: r.auto.climbSuccessful ?? false,
+          playedDefense: r.teleop.playedDefense ?? false,
+          bricked: r.teleop.bricked ?? false,
+        }));
+        setDataPoints(points);
+      })
+      .catch(() => setDataPoints([]));
+  }, [eventKey, teamNum]);
 
   // OPR lookup — load real scouted scores for accuracy
   const [scoutedScores, setScoutedScores] = useState<Map<number, MatchScores>>(new Map());
@@ -294,7 +317,7 @@ export default function TeamPage() {
 
         {/* ── Matches tab ── */}
         {tab === "matches" && (
-          <MatchesTab teamNumber={teamNum} qualMatches={qualMatches} />
+          <MatchesTab teamNumber={teamNum} />
         )}
 
         {/* ── Pit Scouting tab ── */}

@@ -94,7 +94,7 @@ const WEIGHT_LABELS: Record<WeightKey, string> = {
   climbSuccessRate: "Climb %",
   defenseRate: "Defense %",
   brickedRate: "Bricked %",
-  avgDriverRating: "Driver Rating",
+  avgDriverRating: "Defense Rating",
 };
 
 const WEIGHT_KEYS = Object.keys(WEIGHT_LABELS) as WeightKey[];
@@ -256,7 +256,7 @@ const COLUMNS: ColDef[] = [
   },
   {
     key: "avgDriverRating",
-    label: "Driver ★",
+    label: "Defense ★",
     align: "right",
     heatKey: "avgDriverRating",
     render: (r, color) => (

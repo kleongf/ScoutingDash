@@ -1,62 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import type { ScoutingRecord } from "../types/scoutingData";
-import type { TBAMatch } from "../types/tba";
+// TBAMatch no longer required in this component
+import { useCompetition } from "../context/CompetitionContext";
+import { loadTeamMatchRecords } from "../services/firestore";
 
-// ── Seeded PRNG ───────────────────────────────────────────────────────────────
-function mulberry32(seed: number) {
-  return function () {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** Generate a realistic-looking scouting record for a team/match (placeholder). */
-function generateRecord(teamNumber: number, match: TBAMatch): ScoutingRecord {
-  const seed = ((teamNumber * 2654435761 + match.match_number * 40503) >>> 0);
-  const rand = mulberry32(seed);
-
-  const teamKey = `frc${teamNumber}`;
-  const alliance: "red" | "blue" = match.alliances.red.team_keys.includes(teamKey) ? "red" : "blue";
-
-  const paths = [Math.floor(rand() * 4), Math.floor(rand() * 4)].filter((v, i, a) => a.indexOf(v) === i);
-  const autoScore = Math.round(rand() * 12 * 10) / 10;
-  const preloaded = rand() < 0.8;
-  const climbAttempted = rand() < 0.7;
-  const climbSuccessful = climbAttempted && rand() < 0.85;
-
-  const ballsMade = Math.floor(rand() * 14);
-  const ballsTransferred = Math.floor(rand() * 12);
-  const bricked = rand() < 0.12;
-  const playedDefense = rand() < 0.28;
-  const teleopScore = Math.round(rand() * 60 * 10) / 10;
-
-  const endgameNotes = [
-    "Good performance overall.",
-    "Struggled with alignment in teleop.",
-    "Excellent autonomous run.",
-    "Defense was very effective.",
-    "Mechanical issue mid-match.",
-    "Clean match, no issues.",
-    "Communication delay between drive team.",
-    "Strong in climbing, weak on transfers.",
-  ];
-  const notes = endgameNotes[Math.floor(rand() * endgameNotes.length)];
-  const attempted = rand() < 0.65;
-  const level = attempted ? (rand() < 0.4 ? 3 : rand() < 0.6 ? 2 : 1) : 0;
-  const rating = Math.round(rand() * 4 + 6); // 6–10
-  const fouls = Math.floor(rand() * 4);
-
-  return {
-    auto: { paths, score: autoScore, preloaded, climbAttempted, climbSuccessful },
-    teleop: { ballsMade, ballsTransferred, bricked, playedDefense, score: teleopScore },
-    endgame: { notes, attempted, level, rating, fouls },
-    teamInfo: { teamNumber, alliance, matchNumber: match.match_number },
-    scannedAt: new Date(Date.now() - Math.floor(rand() * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-  };
-}
+// Synthetic match generation removed: MatchesTab shows only saved scouting records.
 
 // ── Small badge helpers ───────────────────────────────────────────────────────
 function AllianceBadge({ alliance }: { alliance: "red" | "blue" }) {
@@ -164,7 +112,7 @@ function ScoutingModal({
             />
             <Row label="Attempted" value={<YesNo value={endgame.attempted} />} />
             <Row
-              label="Driver Rating"
+              label="Defense Rating"
               value={
                 <span className="flex items-center gap-1">
                   <span className="text-white font-bold">{endgame.rating}</span>
@@ -227,22 +175,25 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 // ── MatchesTab ────────────────────────────────────────────────────────────────
 interface MatchesTabProps {
   teamNumber: number;
-  qualMatches: TBAMatch[];
 }
 
-export default function MatchesTab({ teamNumber, qualMatches }: MatchesTabProps) {
+export default function MatchesTab({ teamNumber }: MatchesTabProps) {
   const [selected, setSelected] = useState<ScoutingRecord | null>(null);
+  const { competition } = useCompetition();
+  const eventKey = competition?.event.key ?? null;
 
-  const records = useMemo(
-    () => qualMatches.map((m) => generateRecord(teamNumber, m)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [teamNumber, qualMatches.map((m) => m.match_number).join(",")]
-  );
+  const [records, setRecords] = useState<ScoutingRecord[]>([]);
+  useEffect(() => {
+    if (!eventKey) { setRecords([]); return; }
+    loadTeamMatchRecords(eventKey, teamNumber)
+      .then((rs) => setRecords(rs))
+      .catch(() => setRecords([]));
+  }, [eventKey, teamNumber]);
 
   if (records.length === 0) {
     return (
       <div className="bg-gray-900 rounded-2xl border border-gray-800 p-10 text-center">
-        <p className="text-gray-500 text-sm">No qualification matches found for this team.</p>
+        <p className="text-gray-500 text-sm">No saved scouting records found for this team.</p>
       </div>
     );
   }

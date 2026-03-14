@@ -253,6 +253,25 @@ export async function loadPracticeMatchNumbers(
 }
 
 /**
+ * Loads all saved scouting records for a given team in a competition.
+ * Path: competitions/{eventKey}/teams/{teamNumber}/matches/
+ */
+export async function loadTeamMatchRecords(
+  eventKey: string,
+  teamNumber: number
+): Promise<ScoutingRecord[]> {
+  const col = collection(db, "competitions", eventKey, "teams", String(teamNumber), "matches");
+  const snap = await getDocs(col);
+  const out: ScoutingRecord[] = [];
+  for (const ds of snap.docs) {
+    out.push(ds.data() as ScoutingRecord);
+  }
+  // Sort by match number for consistent display
+  out.sort((a, b) => a.teamInfo.matchNumber - b.teamInfo.matchNumber);
+  return out;
+}
+
+/**
  * Saves pit scouting data for one team.
  * Path: competitions/{eventKey}/pit/{teamNumber}
  */
