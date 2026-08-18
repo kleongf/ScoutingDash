@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# Scouting Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React/TypeScript dashboard for running an FRC scouting workflow. It loads event schedules and teams from The Blue Alliance, stores competition and scouting data in Firestore, imports QR-coded scouting records, calculates team metrics/OPR, and supports pit scouting and draggable picklists.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- load a real TBA event or generate a deterministic test competition
+- browse qualification and practice matches
+- scan and parse scouting QR codes
+- inspect team pages, match history, and calculated metrics
+- record pit-scouting data
+- rank teams in a drag-and-drop picklist
+- seed and update competition data in Firestore
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Install Node.js 20 or newer and dependencies:
 
-## Expanding the ESLint configuration
+   ```bash
+   npm install
+   ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+2. Create a local `.env` containing your own credentials:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+   ```dotenv
+   VITE_TBA_API_KEY=your_tba_read_api_key
+   VITE_API_KEY=your_firebase_web_api_key
+   VITE_AUTH_DOMAIN=your-project.firebaseapp.com
+   VITE_PROJECT_ID=your-project-id
+   VITE_STORAGE_BUCKET=your-project.appspot.com
+   VITE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_APP_ID=your_app_id
+   VITE_MEASUREMENT_ID=your_measurement_id
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+   Obtain a TBA Read API key from [The Blue Alliance account page](https://www.thebluealliance.com/account) and the web configuration from Firebase Project Settings. Do not commit `.env` or reuse credentials found in repository history.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+3. Start the application:
+
+   ```bash
+   npm run dev
+   ```
+
+Open the Vite URL, normally [http://localhost:5173](http://localhost:5173).
+
+## Commands
+
+```bash
+npm run build
+npm run lint
+npm run preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Firestore access and security rules must permit the reads and writes performed by the dashboard. The current app does not include an authentication flow, so deploy it only with rules appropriate for your environment.
